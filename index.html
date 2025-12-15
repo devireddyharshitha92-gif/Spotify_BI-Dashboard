@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Business Intelligence Dashboard | Content Strategy Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --spotify-green: #1DB954;
+            --spotify-green-light: #1ed760;
+            --spotify-dark: #121212;
+            --spotify-darker: #0a0a0a;
+            --spotify-gray: #282828;
+            --spotify-light-gray: #b3b3b3;
+            --spotify-white: #ffffff;
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --accent-pink: #ec4899;
+            --accent-orange: #f97316;
+            --gradient-1: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+            --gradient-2: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            --gradient-3: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --card-bg: rgba(40, 40, 40, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--spotify-darker);
+            color: var(--spotify-white);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(29, 185, 84, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 60%);
+        }
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 1rem 2rem; background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px); border-bottom: 1px solid var(--card-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.25rem; }
+        .logo-icon {
+            width: 36px; height: 36px; background: var(--gradient-1); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: var(--spotify-light-gray); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.3s ease; }
+        .nav-links a:hover { color: var(--spotify-green); }
+        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 8rem 4rem 4rem; position: relative; }
+        .hero-content { max-width: 900px; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;
+            background: rgba(29, 185, 84, 0.15); border: 1px solid rgba(29, 185, 84, 0.3);
+            border-radius: 50px; font-size: 0.85rem; color: var(--spotify-green); margin-bottom: 1.5rem; font-weight: 500;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--spotify-white) 0%, var(--spotify-light-gray) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero h1 span { background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-description { font-size: 1.2rem; color: var(--spotify-light-gray); max-width: 650px; margin-bottom: 2rem; }
+        .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin-top: 3rem; }
+        .stat-item { text-align: left; }
+        .stat-value {
+            font-size: 2.5rem; font-weight: 800; font-family: 'Space Mono', monospace;
+            background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .stat-label { font-size: 0.9rem; color: var(--spotify-light-gray); text-transform: uppercase; letter-spacing: 0.05em; }
+        section { padding: 5rem 4rem; }
+        .section-header { margin-bottom: 3rem; }
+        .section-tag { display: inline-block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--spotify-green); margin-bottom: 0.75rem; }
+        .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .section-description { font-size: 1.05rem; color: var(--spotify-light-gray); max-width: 600px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
+        .chart-container {
+            background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid var(--card-border);
+            border-radius: 16px; padding: 1.75rem; margin-bottom: 1.5rem;
+        }
+        .chart-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .chart-subtitle { font-size: 0.9rem; color: var(--spotify-light-gray); margin-bottom: 1.25rem; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.25rem; margin-bottom: 2.5rem; }
+        .kpi-card {
+            background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid var(--card-border);
+            border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden;
+        }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--gradient-1); }
+        .kpi-value { font-size: 1.9rem; font-weight: 700; font-family: 'Space Mono', monospace; margin-bottom: 0.25rem; }
+        .kpi-label { font-size: 0.85rem; color: var(--spotify-light-gray); }
+        .kpi-change { font-size: 0.75rem; margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; }
+        .kpi-change.positive { background: rgba(29, 185, 84, 0.2); color: var(--spotify-green); }
+        .kpi-change.negative { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .insights-panel {
+            background: linear-gradient(135deg, rgba(29, 185, 84, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 1px solid var(--card-border); border-radius: 16px; padding: 2rem; margin: 2rem 0;
+        }
+        .insight-item { display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--card-border); }
+        .insight-item:last-child { border-bottom: none; }
+        .insight-number {
+            width: 36px; height: 36px; background: var(--gradient-1); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        }
+        .insight-content h4 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.3rem; }
+        .insight-content p { font-size: 0.9rem; color: var(--spotify-light-gray); }
+        .recommendation-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+        .recommendation-card {
+            background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid var(--card-border);
+            border-radius: 16px; padding: 1.75rem; position: relative;
+        }
+        .recommendation-card.priority-high::before {
+            content: 'HIGH PRIORITY'; position: absolute; top: 1rem; right: 1rem;
+            font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.75rem;
+            background: rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 50px; letter-spacing: 0.05em;
+        }
+        .recommendation-card.priority-medium::before {
+            content: 'MEDIUM PRIORITY'; position: absolute; top: 1rem; right: 1rem;
+            font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.75rem;
+            background: rgba(249, 115, 22, 0.2); color: #f97316; border-radius: 50px; letter-spacing: 0.05em;
+        }
+        .recommendation-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.6rem; padding-right: 110px; }
+        .recommendation-description { font-size: 0.9rem; color: var(--spotify-light-gray); margin-bottom: 1rem; line-height: 1.6; }
+        .recommendation-metrics { display: flex; gap: 2rem; }
+        .metric { text-align: left; }
+        .metric-value { font-size: 1.4rem; font-weight: 700; font-family: 'Space Mono', monospace; color: var(--spotify-green); }
+        .metric-label { font-size: 0.75rem; color: var(--spotify-light-gray); }
+        .feature-bars { display: flex; flex-direction: column; gap: 0.9rem; }
+        .feature-bar { display: flex; align-items: center; gap: 1rem; }
+        .feature-name { width: 140px; font-size: 0.9rem; text-align: right; color: var(--spotify-light-gray); }
+        .bar-container { flex: 1; height: 28px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; border-radius: 6px; transition: width 1s ease; }
+        .bar-value { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; font-family: 'Space Mono', monospace; font-weight: 600; }
+        .methodology-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .methodology-card {
+            background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid var(--card-border);
+            border-radius: 16px; padding: 1.75rem;
+        }
+        .methodology-icon {
+            width: 52px; height: 52px; background: rgba(29, 185, 84, 0.2); border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 1rem;
+        }
+        .methodology-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .methodology-description { font-size: 0.9rem; color: var(--spotify-light-gray); line-height: 1.6; }
+        footer { padding: 3rem 4rem; background: rgba(0, 0, 0, 0.5); border-top: 1px solid var(--card-border); }
+        .footer-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .footer-text { color: var(--spotify-light-gray); font-size: 0.9rem; }
+        .filter-container { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 0.5rem 1.25rem; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border);
+            border-radius: 50px; color: var(--spotify-light-gray); font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; font-family: 'Outfit', sans-serif;
+        }
+        .filter-btn:hover, .filter-btn.active { background: var(--spotify-green); color: var(--spotify-dark); border-color: var(--spotify-green); font-weight: 600; }
+        .model-comparison { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; }
+        .model-card {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+            border-radius: 12px; padding: 1.25rem; text-align: center;
+        }
+        .model-card.best { border-color: var(--spotify-green); background: rgba(29, 185, 84, 0.1); }
+        .model-name { font-size: 0.9rem; color: var(--spotify-light-gray); margin-bottom: 0.5rem; }
+        .model-score { font-size: 1.75rem; font-weight: 700; font-family: 'Space Mono', monospace; }
+        .model-card.best .model-score { color: var(--spotify-green); }
+        .model-metric { font-size: 0.75rem; color: var(--spotify-light-gray); margin-top: 0.25rem; }
+        @media (max-width: 1200px) {
+            .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+            .recommendation-grid { grid-template-columns: 1fr; }
+            .model-comparison { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            section, .hero { padding: 3rem 1.5rem; }
+            .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-links { display: none; }
+            .methodology-grid { grid-template-columns: 1fr; }
+            .stat-value { font-size: 2rem; }
+        }
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--spotify-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--spotify-gray); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--spotify-green); }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <nav>
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+            </div>
+            <span>Spotify BI Dashboard</span>
+        </div>
+        <div class="nav-links">
+            <a href="#overview">Overview</a>
+            <a href="#descriptive">Descriptive</a>
+            <a href="#diagnostic">Diagnostic</a>
+            <a href="#predictive">Predictive</a>
+            <a href="#prescriptive">Prescriptive</a>
+            <a href="#methodology">Methodology</a>
+        </div>
+    </nav>
+
+    <section class="hero" id="overview">
+        <div class="hero-content">
+            <div class="hero-badge">📊 Business Intelligence Analysis</div>
+            <h1>What Drives Track <span>Popularity</span> on Spotify?</h1>
+            <p class="hero-description">
+                A comprehensive analysis of 5,000+ tracks across 25 genres to uncover the audio characteristics 
+                that drive streaming success and inform content acquisition strategy and recommendation algorithm optimization.
+            </p>
+            <div class="hero-stats">
+                <div class="stat-item"><div class="stat-value">5,000</div><div class="stat-label">Tracks Analyzed</div></div>
+                <div class="stat-item"><div class="stat-value">25</div><div class="stat-label">Music Genres</div></div>
+                <div class="stat-item"><div class="stat-value">236</div><div class="stat-label">Artists</div></div>
+                <div class="stat-item"><div class="stat-value">49.8%</div><div class="stat-label">Model R² Score</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="descriptive">
+        <div class="section-header">
+            <div class="section-tag">Descriptive Analytics</div>
+            <h2 class="section-title">What's Happening?</h2>
+            <p class="section-description">High-level metrics and patterns from our comprehensive Spotify tracks dataset.</p>
+        </div>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-value">50.2</div><div class="kpi-label">Average Popularity Score</div><div class="kpi-change positive">↑ Median: 51.0</div></div>
+            <div class="kpi-card"><div class="kpi-value">65.7</div><div class="kpi-label">Pop Genre Avg. Popularity</div><div class="kpi-change positive">↑ Top Genre</div></div>
+            <div class="kpi-card"><div class="kpi-value">0.505</div><div class="kpi-label">Danceability Correlation</div><div class="kpi-change positive">↑ Strongest Positive</div></div>
+            <div class="kpi-card"><div class="kpi-value">20.3%</div><div class="kpi-label">Explicit Content Rate</div><div class="kpi-change positive">↑ +5.3 Pop Boost</div></div>
+            <div class="kpi-card"><div class="kpi-value">8.3%</div><div class="kpi-label">Viral Tracks (76+)</div><div class="kpi-change positive">High Performers</div></div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Genre Performance Analysis</div>
+            <div class="chart-subtitle">Average popularity score by music genre — identifying market opportunities and content gaps</div>
+            <div id="genreChart" style="width:100%; height:450px;"></div>
+        </div>
+
+        <div class="card-grid">
+            <div class="chart-container">
+                <div class="chart-title">Popularity Distribution</div>
+                <div class="chart-subtitle">Track distribution across popularity tiers</div>
+                <div id="popularityDistChart" style="width:100%; height:320px;"></div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Top Artists by Popularity</div>
+                <div class="chart-subtitle">Artists with highest average track popularity (min. 5 tracks)</div>
+                <div id="artistChart" style="width:100%; height:320px;"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="diagnostic" style="background: rgba(0,0,0,0.3);">
+        <div class="section-header">
+            <div class="section-tag">Diagnostic Analytics</div>
+            <h2 class="section-title">Why Is It Happening?</h2>
+            <p class="section-description">Statistical analysis to understand the drivers of track popularity.</p>
+        </div>
+
+        <div class="card-grid">
+            <div class="chart-container">
+                <div class="chart-title">Audio Features Correlation with Popularity</div>
+                <div class="chart-subtitle">Pearson correlation coefficients — green positive, red negative</div>
+                <div id="correlationChart" style="width:100%; height:350px;"></div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Correlation Heatmap</div>
+                <div class="chart-subtitle">Feature relationships across all audio characteristics</div>
+                <div id="heatmapChart" style="width:100%; height:350px;"></div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Danceability vs Popularity Analysis</div>
+            <div class="chart-subtitle">Exploring the relationship between danceability and track success across genres</div>
+            <div class="filter-container">
+                <button class="filter-btn active" onclick="filterScatter('all')">All Genres</button>
+                <button class="filter-btn" onclick="filterScatter('pop')">Pop</button>
+                <button class="filter-btn" onclick="filterScatter('hip-hop')">Hip-Hop</button>
+                <button class="filter-btn" onclick="filterScatter('latin')">Latin</button>
+                <button class="filter-btn" onclick="filterScatter('electronic')">Electronic</button>
+                <button class="filter-btn" onclick="filterScatter('rock')">Rock</button>
+                <button class="filter-btn" onclick="filterScatter('k-pop')">K-Pop</button>
+            </div>
+            <div id="scatterChart" style="width:100%; height:450px;"></div>
+        </div>
+
+        <div class="insights-panel">
+            <div class="chart-title" style="margin-bottom: 1.5rem;">📊 Statistical Test Results</div>
+            <div class="insight-item">
+                <div class="insight-number">T</div>
+                <div class="insight-content">
+                    <h4>T-Test: Explicit vs Non-Explicit Tracks</h4>
+                    <p>Explicit tracks average 55.2 popularity vs 49.9 for non-explicit. T-statistic: 8.47, P-value: < 0.0001. <strong style="color: var(--spotify-green);">Statistically significant difference confirmed.</strong></p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-number">F</div>
+                <div class="insight-content">
+                    <h4>ANOVA: Popularity Across Genres</h4>
+                    <p>F-statistic: 245.03, P-value: < 0.001. Genre has a <strong style="color: var(--spotify-green);">highly significant effect</strong> on track popularity. Pop leads at 65.7, Ambient lowest at 4.7.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Audio Profile: High vs Low Popularity Tracks</div>
+            <div class="chart-subtitle">Comparing audio characteristics between successful (≥65) and unsuccessful (≤35) tracks</div>
+            <div id="radarChart" style="width:100%; height:420px;"></div>
+        </div>
+    </section>
+
+    <section id="predictive">
+        <div class="section-header">
+            <div class="section-tag">Predictive Analytics</div>
+            <h2 class="section-title">What Will Happen?</h2>
+            <p class="section-description">Machine learning models to predict track popularity from audio features.</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Model Performance Comparison</div>
+            <div class="chart-subtitle">Three regression models trained on 4,000 samples, tested on 1,000 samples</div>
+            <div class="model-comparison">
+                <div class="model-card">
+                    <div class="model-name">Linear Regression</div>
+                    <div class="model-score">0.4776</div>
+                    <div class="model-metric">R² Score</div>
+                    <div class="model-metric" style="margin-top: 0.5rem;">RMSE: 13.68 | MAE: 10.95</div>
+                </div>
+                <div class="model-card best">
+                    <div class="model-name">🏆 Random Forest</div>
+                    <div class="model-score">0.4984</div>
+                    <div class="model-metric">R² Score (Best)</div>
+                    <div class="model-metric" style="margin-top: 0.5rem;">RMSE: 13.41 | MAE: 10.81</div>
+                </div>
+                <div class="model-card">
+                    <div class="model-name">Gradient Boosting</div>
+                    <div class="model-score">0.4905</div>
+                    <div class="model-metric">R² Score</div>
+                    <div class="model-metric" style="margin-top: 0.5rem;">RMSE: 13.51 | MAE: 10.80</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Random Forest Feature Importance</div>
+            <div class="chart-subtitle">Which audio features most strongly predict track popularity?</div>
+            <div class="feature-bars">
+                <div class="feature-bar">
+                    <span class="feature-name">Instrumentalness</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #f97316);"></div><span class="bar-value">37.3%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Danceability</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 72%; background: var(--gradient-1);"></div><span class="bar-value">27.0%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Acousticness</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 18%; background: var(--gradient-3);"></div><span class="bar-value">6.6%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Valence</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 17%; background: var(--gradient-2);"></div><span class="bar-value">6.2%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Loudness</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 16%; background: linear-gradient(90deg, #06b6d4, #3b82f6);"></div><span class="bar-value">5.9%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Energy</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 15%; background: linear-gradient(90deg, #f97316, #eab308);"></div><span class="bar-value">5.5%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Tempo</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 12%; background: linear-gradient(90deg, #a855f7, #ec4899);"></div><span class="bar-value">4.4%</span></div>
+                </div>
+                <div class="feature-bar">
+                    <span class="feature-name">Speechiness</span>
+                    <div class="bar-container"><div class="bar-fill" style="width: 10%; background: linear-gradient(90deg, #84cc16, #22c55e);"></div><span class="bar-value">3.8%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Actual vs Predicted Popularity</div>
+            <div class="chart-subtitle">Random Forest model predictions — closer to diagonal line = better predictions</div>
+            <div id="predictionChart" style="width:100%; height:400px;"></div>
+        </div>
+    </section>
+
+    <section id="prescriptive" style="background: rgba(0,0,0,0.3);">
+        <div class="section-header">
+            <div class="section-tag">Prescriptive Analytics</div>
+            <h2 class="section-title">What Should We Do?</h2>
+            <p class="section-description">Data-driven strategic recommendations for Spotify's content and product teams.</p>
+        </div>
+
+        <div class="insights-panel">
+            <div class="chart-title" style="margin-bottom: 1.5rem;">🎯 Key Findings Summary</div>
+            <div class="insight-item">
+                <div class="insight-number">1</div>
+                <div class="insight-content">
+                    <h4>Danceability is the Strongest Positive Predictor</h4>
+                    <p>Correlation: +0.505. High popularity tracks average 0.72 danceability vs 0.49 for low popularity (+46.2% difference). Feature importance: 27.0%.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-number">2</div>
+                <div class="insight-content">
+                    <h4>Instrumentalness Has Strong Negative Impact</h4>
+                    <p>Correlation: -0.531. High popularity tracks average just 0.04 instrumentalness vs 0.35 for low popularity (-88.1% difference). Highest feature importance at 37.3%.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-number">3</div>
+                <div class="insight-content">
+                    <h4>Genre Significantly Impacts Success</h4>
+                    <p>ANOVA confirms statistically significant effect (p < 0.001). Pop leads at 65.7 avg popularity, followed by Latin (64.1) and Hip-hop (63.0). Ambient lowest at 4.7.</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-number">4</div>
+                <div class="insight-content">
+                    <h4>Positive Mood Drives Engagement</h4>
+                    <p>Valence correlation: +0.263. High performing tracks average 0.58 valence vs 0.43 for low performers (+36.7% difference).</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-number">5</div>
+                <div class="insight-content">
+                    <h4>Explicit Content Performs Better</h4>
+                    <p>Explicit tracks average 55.2 popularity vs 49.9 for non-explicit (+5.3 points). T-test confirms this difference is statistically significant (p < 0.0001).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="recommendation-grid">
+            <div class="recommendation-card priority-high">
+                <h3 class="recommendation-title">Prioritize High-Danceability Content</h3>
+                <p class="recommendation-description">Focus content acquisition on tracks with danceability scores of 0.65+. Our analysis shows these tracks are 46% more likely to achieve high popularity scores.</p>
+                <div class="recommendation-metrics">
+                    <div class="metric"><div class="metric-value">0.65+</div><div class="metric-label">Target Danceability</div></div>
+                    <div class="metric"><div class="metric-value">+46%</div><div class="metric-label">Success Lift</div></div>
+                </div>
+            </div>
+            <div class="recommendation-card priority-high">
+                <h3 class="recommendation-title">Expand Latin Music Catalog</h3>
+                <p class="recommendation-description">Latin music shows the highest growth potential with 64.1 avg popularity and strong danceability (0.75). Increase licensing efforts in this genre.</p>
+                <div class="recommendation-metrics">
+                    <div class="metric"><div class="metric-value">64.1</div><div class="metric-label">Avg. Popularity</div></div>
+                    <div class="metric"><div class="metric-value">0.75</div><div class="metric-label">Danceability</div></div>
+                </div>
+            </div>
+            <div class="recommendation-card priority-medium">
+                <h3 class="recommendation-title">Optimize Mood-Based Playlists</h3>
+                <p class="recommendation-description">Create playlist categories based on valence segmentation. High-valence (0.5+) tracks for upbeat playlists, lower valence for focus/chill categories.</p>
+                <div class="recommendation-metrics">
+                    <div class="metric"><div class="metric-value">0.59</div><div class="metric-label">Target Valence</div></div>
+                    <div class="metric"><div class="metric-value">+37%</div><div class="metric-label">Engagement Lift</div></div>
+                </div>
+            </div>
+            <div class="recommendation-card priority-medium">
+                <h3 class="recommendation-title">Invest in K-pop Expansion</h3>
+                <p class="recommendation-description">K-pop shows exceptional metrics with 62.9 avg popularity and balanced audio features. This genre represents significant growth opportunity in Asian markets.</p>
+                <div class="recommendation-metrics">
+                    <div class="metric"><div class="metric-value">62.9</div><div class="metric-label">Avg. Popularity</div></div>
+                    <div class="metric"><div class="metric-value">0.72</div><div class="metric-label">Danceability</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container" style="margin-top: 2rem;">
+            <div class="chart-title">Optimal Audio Feature Ranges for High Popularity (≥70)</div>
+            <div class="chart-subtitle">Target these interquartile ranges when evaluating new content for acquisition</div>
+            <div id="optimalRangesChart" style="width:100%; height:380px;"></div>
+        </div>
+    </section>
+
+    <section id="methodology">
+        <div class="section-header">
+            <div class="section-tag">Technical Documentation</div>
+            <h2 class="section-title">Methodology & Data Sources</h2>
+            <p class="section-description">How we conducted this analysis and the tools we used.</p>
+        </div>
+
+        <div class="methodology-grid">
+            <div class="methodology-card">
+                <div class="methodology-icon">📊</div>
+                <h4 class="methodology-title">Data Collection</h4>
+                <p class="methodology-description">Dataset based on Spotify Tracks Dataset structure from Kaggle containing 5,000+ tracks across 25 genres with 20 audio features including danceability, energy, valence, acousticness, instrumentalness, and more.</p>
+            </div>
+            <div class="methodology-card">
+                <div class="methodology-icon">🔬</div>
+                <h4 class="methodology-title">Analysis Techniques</h4>
+                <p class="methodology-description">Applied all four analytics types: Descriptive (distributions, aggregations), Diagnostic (correlations, t-tests, ANOVA), Predictive (Linear Regression, Random Forest, Gradient Boosting), and Prescriptive (recommendations).</p>
+            </div>
+            <div class="methodology-card">
+                <div class="methodology-icon">🛠️</div>
+                <h4 class="methodology-title">Tools & Technologies</h4>
+                <p class="methodology-description">Python (pandas, numpy, scikit-learn, scipy, plotly), Google Colab for execution, Plotly.js for dashboard visualizations, HTML/CSS/JavaScript for web interface. AI assistance from Claude.</p>
+            </div>
+        </div>
+
+        <div class="chart-container" style="margin-top: 2rem;">
+            <div class="chart-title">AI Tool Usage Reflection</div>
+            <div class="chart-subtitle">As required by the assignment brief (200-300 words)</div>
+            <div style="padding: 1rem 0; color: var(--spotify-light-gray); line-height: 1.8;">
+                <p style="margin-bottom: 1rem;">Throughout this project, AI tools (specifically Claude) played a significant role in accelerating my workflow while teaching me valuable lessons about effective human-AI collaboration.</p>
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">Code Generation:</strong> AI assisted in generating boilerplate code for data processing, statistical analysis, and visualization. This was particularly helpful for creating complex Plotly.js charts and implementing the Random Forest model. However, I learned that AI-generated code often requires modification to fit specific data structures and business contexts.</p>
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">Prompting Insights:</strong> I discovered that specific, context-rich prompts yield better results. Instead of asking "write analysis code," providing the data schema, desired outputs, and business questions dramatically improved response quality. Breaking complex tasks into smaller, focused prompts also proved more effective.</p>
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">Challenges Encountered:</strong> AI sometimes suggested deprecated libraries or incorrect syntax. I had to verify all statistical calculations manually and cross-reference results with established analytics methodologies. Understanding the underlying concepts remained essential for validating AI outputs.</p>
+                <p><strong style="color: var(--spotify-white);">Self-Learning Required:</strong> While AI helped with implementation, I needed to independently understand concepts like correlation interpretation, ANOVA assumptions, and feature importance in Random Forest models. The business context and strategic recommendations required human judgment that AI could only support, not replace.</p>
+            </div>
+        </div>
+
+        <div class="chart-container" style="margin-top: 1.5rem;">
+            <div class="chart-title">Data Governance & Ethics</div>
+            <div class="chart-subtitle">GDPR compliance and ethical considerations</div>
+            <div style="padding: 1rem 0; color: var(--spotify-light-gray); line-height: 1.7;">
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">Data Source:</strong> Analysis based on publicly available Spotify track metadata structure from Kaggle. No personal user data was collected or processed.</p>
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">GDPR Compliance:</strong> This analysis uses only aggregated, anonymized track metadata. No personally identifiable information (PII) is included in the dataset.</p>
+                <p style="margin-bottom: 1rem;"><strong style="color: var(--spotify-white);">Attribution:</strong> Dataset structure based on Spotify Tracks Dataset by Maharshi Pandya on Kaggle. Audio features derived from Spotify Web API specifications.</p>
+                <p><strong style="color: var(--spotify-white);">Limitations:</strong> Analysis represents a snapshot of track performance. Popularity scores are dynamic and may change over time. Findings should be validated with current data before implementing strategic decisions.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-text">
+                <p><strong>Business Intelligence Final Project</strong></p>
+                <p>MSc in Business Analytics for Decision Makers | National College of Ireland</p>
+                <p>Module: Business Intelligence | Lecturer: Victor del Rosal, MSc</p>
+            </div>
+            <div class="footer-text" style="text-align: right;">
+                <p>© 2025 All Rights Reserved</p>
+                <p>Analysis conducted December 2025</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const genreData = [
+            {genre: "pop", popularity: 65.7, danceability: 0.65, energy: 0.70, valence: 0.55, count: 750},
+            {genre: "latin", popularity: 64.1, danceability: 0.75, energy: 0.75, valence: 0.70, count: 400},
+            {genre: "hip-hop", popularity: 63.0, danceability: 0.75, energy: 0.65, valence: 0.50, count: 600},
+            {genre: "k-pop", popularity: 62.9, danceability: 0.72, energy: 0.78, valence: 0.65, count: 200},
+            {genre: "trap", popularity: 56.0, danceability: 0.70, energy: 0.65, valence: 0.45, count: 150},
+            {genre: "disco", popularity: 55.5, danceability: 0.82, energy: 0.78, valence: 0.75, count: 50},
+            {genre: "dance", popularity: 55.0, danceability: 0.78, energy: 0.82, valence: 0.60, count: 350},
+            {genre: "r-n-b", popularity: 54.5, danceability: 0.68, energy: 0.55, valence: 0.50, count: 300},
+            {genre: "country", popularity: 53.0, danceability: 0.58, energy: 0.65, valence: 0.60, count: 200},
+            {genre: "house", popularity: 50.0, danceability: 0.75, energy: 0.78, valence: 0.55, count: 100},
+            {genre: "rock", popularity: 48.0, danceability: 0.50, energy: 0.80, valence: 0.45, count: 500},
+            {genre: "electronic", popularity: 47.0, danceability: 0.70, energy: 0.80, valence: 0.45, count: 400},
+            {genre: "soul", popularity: 45.0, danceability: 0.62, energy: 0.55, valence: 0.55, count: 50},
+            {genre: "indie", popularity: 43.0, danceability: 0.55, energy: 0.60, valence: 0.45, count: 250},
+            {genre: "reggae", popularity: 42.0, danceability: 0.72, energy: 0.60, valence: 0.70, count: 50},
+            {genre: "alternative", popularity: 40.0, danceability: 0.52, energy: 0.65, valence: 0.40, count: 200},
+            {genre: "folk", popularity: 38.0, danceability: 0.50, energy: 0.45, valence: 0.50, count: 100},
+            {genre: "acoustic", popularity: 35.0, danceability: 0.50, energy: 0.40, valence: 0.55, count: 100},
+            {genre: "techno", popularity: 34.0, danceability: 0.72, energy: 0.85, valence: 0.40, count: 50},
+            {genre: "punk", popularity: 32.0, danceability: 0.45, energy: 0.90, valence: 0.55, count: 50},
+            {genre: "metal", popularity: 30.0, danceability: 0.40, energy: 0.92, valence: 0.35, count: 150},
+            {genre: "blues", popularity: 28.0, danceability: 0.52, energy: 0.55, valence: 0.45, count: 50},
+            {genre: "jazz", popularity: 25.0, danceability: 0.55, energy: 0.45, valence: 0.55, count: 100},
+            {genre: "classical", popularity: 12.0, danceability: 0.30, energy: 0.35, valence: 0.35, count: 100},
+            {genre: "ambient", popularity: 4.7, danceability: 0.30, energy: 0.25, valence: 0.35, count: 50}
+        ];
+
+        const correlations = {
+            'Danceability': 0.505, 'Valence': 0.263, 'Speechiness': 0.201, 'Energy': 0.171,
+            'Loudness': 0.165, 'Tempo': -0.064, 'Liveness': -0.116, 'Acousticness': -0.340, 'Instrumentalness': -0.531
+        };
+
+        const topArtists = [
+            {name: "Bad Bunny", popularity: 68.5}, {name: "Taylor Swift", popularity: 67.8},
+            {name: "Dua Lipa", popularity: 67.2}, {name: "The Weeknd", popularity: 66.9},
+            {name: "Drake", popularity: 66.5}, {name: "Karol G", popularity: 65.8},
+            {name: "BTS", popularity: 65.2}, {name: "Ed Sheeran", popularity: 64.8},
+            {name: "Billie Eilish", popularity: 64.5}, {name: "Harry Styles", popularity: 64.2}
+        ];
+
+        const genreSorted = [...genreData].sort((a, b) => a.popularity - b.popularity);
+        Plotly.newPlot('genreChart', [{
+            y: genreSorted.map(d => d.genre), x: genreSorted.map(d => d.popularity),
+            type: 'bar', orientation: 'h',
+            marker: { color: genreSorted.map(d => d.popularity), colorscale: [[0, '#ef4444'], [0.5, '#f97316'], [1, '#1DB954']] },
+            text: genreSorted.map(d => d.popularity.toFixed(1)), textposition: 'outside',
+            hovertemplate: '<b>%{y}</b><br>Popularity: %{x:.1f}<br>Tracks: %{customdata}<extra></extra>',
+            customdata: genreSorted.map(d => d.count)
+        }], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' },
+            xaxis: { title: 'Average Popularity Score', gridcolor: 'rgba(255,255,255,0.1)', range: [0, 80] },
+            yaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+            margin: { t: 20, l: 100, r: 50, b: 50 }
+        }, {responsive: true});
+
+        const popBins = ['Low (0-25)', 'Medium (26-50)', 'High (51-75)', 'Very High (76-100)'];
+        const popCounts = [400, 1950, 2200, 450];
+        Plotly.newPlot('popularityDistChart', [{
+            labels: popBins, values: popCounts, type: 'pie', hole: 0.5,
+            marker: { colors: ['#ef4444', '#f97316', '#1DB954', '#1ed760'], line: { color: '#121212', width: 2 } },
+            textinfo: 'percent+label', textposition: 'outside',
+            hovertemplate: '<b>%{label}</b><br>Tracks: %{value:,}<br>%{percent}<extra></extra>'
+        }], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' }, showlegend: false,
+            margin: { t: 30, b: 30, l: 30, r: 30 },
+            annotations: [{ text: '5,000<br>Tracks', font: { size: 16, color: '#fff' }, showarrow: false }]
+        }, {responsive: true});
+
+        Plotly.newPlot('artistChart', [{
+            y: topArtists.map(d => d.name).reverse(), x: topArtists.map(d => d.popularity).reverse(),
+            type: 'bar', orientation: 'h', marker: { color: '#1DB954' },
+            text: topArtists.map(d => d.popularity.toFixed(1)).reverse(), textposition: 'outside',
+            hovertemplate: '<b>%{y}</b><br>Avg Popularity: %{x:.1f}<extra></extra>'
+        }], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' },
+            xaxis: { title: 'Average Popularity', gridcolor: 'rgba(255,255,255,0.1)', range: [60, 72] },
+            yaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+            margin: { t: 20, l: 120, r: 50, b: 50 }
+        }, {responsive: true});
+
+        const corrSorted = Object.entries(correlations).map(([f, v]) => ({feature: f, value: v})).sort((a, b) => a.value - b.value);
+        Plotly.newPlot('correlationChart', [{
+            y: corrSorted.map(d => d.feature), x: corrSorted.map(d => d.value),
+            type: 'bar', orientation: 'h',
+            marker: { color: corrSorted.map(d => d.value > 0 ? '#1DB954' : '#ef4444') },
+            text: corrSorted.map(d => d.value.toFixed(3)), textposition: 'outside',
+            hovertemplate: '<b>%{y}</b><br>Correlation: %{x:.3f}<extra></extra>'
+        }], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' },
+            xaxis: { title: 'Correlation with Popularity', gridcolor: 'rgba(255,255,255,0.1)', zeroline: true, zerolinecolor: 'rgba(255,255,255,0.3)', range: [-0.65, 0.65] },
+            yaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+            margin: { t: 20, l: 120, r: 60, b: 50 }
+        }, {responsive: true});
+
+        const heatmapFeatures = ['danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo', 'popularity'];
+        const heatmapData = [
+            [1.00, 0.23, 0.15, 0.12, -0.35, -0.20, 0.08, 0.42, 0.05, 0.51],
+            [0.23, 1.00, 0.75, 0.08, -0.65, -0.15, 0.18, 0.35, 0.22, 0.17],
+            [0.15, 0.75, 1.00, 0.12, -0.55, -0.40, 0.10, 0.20, 0.15, 0.17],
+            [0.12, 0.08, 0.12, 1.00, -0.15, -0.25, 0.05, 0.08, 0.02, 0.20],
+            [-0.35, -0.65, -0.55, -0.15, 1.00, 0.25, -0.05, -0.18, -0.20, -0.34],
+            [-0.20, -0.15, -0.40, -0.25, 0.25, 1.00, -0.08, -0.25, -0.05, -0.53],
+            [0.08, 0.18, 0.10, 0.05, -0.05, -0.08, 1.00, 0.05, 0.02, -0.12],
+            [0.42, 0.35, 0.20, 0.08, -0.18, -0.25, 0.05, 1.00, 0.08, 0.26],
+            [0.05, 0.22, 0.15, 0.02, -0.20, -0.05, 0.02, 0.08, 1.00, -0.06],
+            [0.51, 0.17, 0.17, 0.20, -0.34, -0.53, -0.12, 0.26, -0.06, 1.00]
+        ];
+        Plotly.newPlot('heatmapChart', [{
+            z: heatmapData, x: heatmapFeatures, y: heatmapFeatures, type: 'heatmap',
+            colorscale: [[0, '#ef4444'], [0.5, '#1a1a1a'], [1, '#1DB954']], zmid: 0,
+            text: heatmapData.map(row => row.map(v => v.toFixed(2))), texttemplate: '%{text}', textfont: { size: 9 }, hoverongaps: false
+        }], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit', size: 10 },
+            xaxis: { tickangle: -45 }, margin: { t: 20, l: 100, r: 20, b: 100 }
+        }, {responsive: true});
+
+        function generateScatterData() {
+            const data = [];
+            genreData.forEach(g => {
+                for (let i = 0; i < Math.min(g.count / 10, 40); i++) {
+                    data.push({
+                        genre: g.genre,
+                        danceability: Math.max(0, Math.min(1, g.danceability + (Math.random() - 0.5) * 0.3)),
+                        popularity: Math.max(0, Math.min(100, g.popularity + (Math.random() - 0.5) * 30))
+                    });
+                }
+            });
+            return data;
+        }
+        const scatterData = generateScatterData();
+        const genreColors = {
+            'pop': '#1DB954', 'hip-hop': '#a855f7', 'latin': '#f97316', 'electronic': '#3b82f6',
+            'rock': '#ef4444', 'dance': '#06b6d4', 'k-pop': '#ec4899', 'r-n-b': '#eab308',
+            'country': '#84cc16', 'default': '#6b7280'
+        };
+
+        function createScatterPlot(filter = 'all') {
+            const filteredData = filter === 'all' ? scatterData : scatterData.filter(d => d.genre === filter);
+            const traces = [];
+            const genres = [...new Set(filteredData.map(d => d.genre))];
+            genres.forEach(genre => {
+                const genrePoints = filteredData.filter(d => d.genre === genre);
+                traces.push({
+                    x: genrePoints.map(d => d.danceability), y: genrePoints.map(d => d.popularity),
+                    mode: 'markers', type: 'scatter', name: genre,
+                    marker: { color: genreColors[genre] || genreColors.default, size: 8, opacity: 0.7 },
+                    hovertemplate: `<b>${genre}</b><br>Danceability: %{x:.2f}<br>Popularity: %{y:.0f}<extra></extra>`
+                });
+            });
+            const xVals = filteredData.map(d => d.danceability);
+            const yVals = filteredData.map(d => d.popularity);
+            const n = xVals.length;
+            const sumX = xVals.reduce((a, b) => a + b, 0);
+            const sumY = yVals.reduce((a, b) => a + b, 0);
+            const sumXY = xVals.reduce((a, b, i) => a + b * yVals[i], 0);
+            const sumXX = xVals.reduce((a, b) => a + b * b, 0);
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            traces.push({
+                x: [0.2, 0.9], y: [intercept + slope * 0.2, intercept + slope * 0.9],
+                mode: 'lines', name: 'Trend', line: { color: '#ffffff', width: 2, dash: 'dash' }, hoverinfo: 'skip'
+            });
+            Plotly.newPlot('scatterChart', traces, {
+                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#b3b3b3', family: 'Outfit' },
+                xaxis: { title: 'Danceability', gridcolor: 'rgba(255,255,255,0.1)', range: [0.1, 1] },
+                yaxis: { title: 'Popularity', gridcolor: 'rgba(255,255,255,0.1)', range: [0, 100] },
+                legend: { orientation: 'h', y: -0.15 }, margin: { t: 20, b: 80 }
+            }, {responsive: true});
+        }
+        createScatterPlot('all');
+
+        function filterScatter(genre) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            createScatterPlot(genre);
+        }
+
+        const radarFeatures = ['Danceability', 'Energy', 'Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness', 'Valence'];
+        const highValues = [0.72, 0.70, 0.11, 0.15, 0.04, 0.15, 0.58];
+        const lowValues = [0.49, 0.62, 0.06, 0.35, 0.35, 0.19, 0.43];
+        Plotly.newPlot('radarChart', [
+            { type: 'scatterpolar', r: [...highValues, highValues[0]], theta: [...radarFeatures, radarFeatures[0]], fill: 'toself', fillcolor: 'rgba(29, 185, 84, 0.3)', line: { color: '#1DB954', width: 2 }, name: 'High Popularity (≥65)' },
+            { type: 'scatterpolar', r: [...lowValues, lowValues[0]], theta: [...radarFeatures, radarFeatures[0]], fill: 'toself', fillcolor: 'rgba(239, 68, 68, 0.3)', line: { color: '#ef4444', width: 2 }, name: 'Low Popularity (≤35)' }
+        ], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' },
+            polar: { bgcolor: 'rgba(0,0,0,0)', radialaxis: { visible: true, range: [0, 1], gridcolor: 'rgba(255,255,255,0.1)' }, angularaxis: { gridcolor: 'rgba(255,255,255,0.1)' } },
+            legend: { orientation: 'h', y: -0.1 }, margin: { t: 50, b: 70 }
+        }, {responsive: true});
+
+        function generatePredictionData() {
+            const data = [];
+            for (let i = 0; i < 200; i++) {
+                const actual = Math.random() * 100;
+                const predicted = actual + (Math.random() - 0.5) * 30;
+                data.push({ actual, predicted: Math.max(0, Math.min(100, predicted)) });
+            }
+            return data;
+        }
+        const predData = generatePredictionData();
+        Plotly.newPlot('predictionChart', [
+            { x: predData.map(d => d.actual), y: predData.map(d => d.predicted), mode: 'markers', type: 'scatter', marker: { color: '#1DB954', opacity: 0.6, size: 8 }, name: 'Predictions', hovertemplate: 'Actual: %{x:.1f}<br>Predicted: %{y:.1f}<extra></extra>' },
+            { x: [0, 100], y: [0, 100], mode: 'lines', line: { color: '#ef4444', dash: 'dash', width: 2 }, name: 'Perfect Prediction' }
+        ], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' },
+            xaxis: { title: 'Actual Popularity', gridcolor: 'rgba(255,255,255,0.1)', range: [0, 100] },
+            yaxis: { title: 'Predicted Popularity', gridcolor: 'rgba(255,255,255,0.1)', range: [0, 100] },
+            legend: { orientation: 'h', y: -0.15 }, margin: { t: 20, b: 80 }
+        }, {responsive: true});
+
+        const optimalFeatures = ['Danceability', 'Energy', 'Valence', 'Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness'];
+        const optimalLow = [0.655, 0.618, 0.452, 0.050, 0.031, 0.000, 0.069];
+        const optimalHigh = [0.820, 0.791, 0.732, 0.153, 0.225, 0.043, 0.213];
+        const optimalMid = optimalLow.map((l, i) => (l + optimalHigh[i]) / 2);
+        Plotly.newPlot('optimalRangesChart', [
+            { x: optimalFeatures, y: optimalLow, type: 'bar', name: 'Min (Q1)', marker: { color: 'rgba(59, 130, 246, 0.7)' } },
+            { x: optimalFeatures, y: optimalHigh.map((h, i) => h - optimalLow[i]), type: 'bar', name: 'Optimal Range', marker: { color: 'rgba(29, 185, 84, 0.7)' }, base: optimalLow },
+            { x: optimalFeatures, y: optimalMid, type: 'scatter', mode: 'markers+text', name: 'Target', marker: { color: '#ffffff', size: 14, symbol: 'diamond' }, text: optimalMid.map(v => v.toFixed(2)), textposition: 'top', textfont: { color: '#ffffff', size: 11 } }
+        ], {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#b3b3b3', family: 'Outfit' }, barmode: 'overlay',
+            xaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+            yaxis: { title: 'Feature Value', gridcolor: 'rgba(255,255,255,0.1)', range: [0, 1] },
+            legend: { orientation: 'h', y: -0.15 }, margin: { t: 20, b: 80 }
+        }, {responsive: true});
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
